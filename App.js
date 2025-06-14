@@ -29,6 +29,10 @@ export default function App() {
       }
     } catch (error) {
       console.error('Error loading habits:', error);
+      Alert.alert(
+        'データ読み込みエラー',
+        'データの読み込みに失敗しました。アプリを再起動してください。'
+      );
     }
   };
 
@@ -37,6 +41,10 @@ export default function App() {
       await AsyncStorage.setItem('habits', JSON.stringify(habitsToSave));
     } catch (error) {
       console.error('Error saving habits:', error);
+      Alert.alert(
+        'データ保存エラー',
+        'データの保存に失敗しました。ストレージ容量を確認してください。'
+      );
     }
   };
 
