@@ -145,7 +145,7 @@ export default function App() {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>growHabit</Text>
+      <Text style={styles.title}>withHabit</Text>
       <Text style={styles.subtitle}>小さな一歩を積み重ねよう</Text>
       
       <FlatList
