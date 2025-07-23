@@ -1,7 +1,7 @@
 {
   "expo": {
-    "name": "growHabit",
-    "slug": "growHabit",
+    "name": "withabit",
+    "slug": "withabit",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -13,7 +13,9 @@
       "backgroundColor": "#ffffff"
     },
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.aujourdui.withabit",
+      "usesNonExemptEncryption": false
     },
     "android": {
       "adaptiveIcon": {
@@ -24,6 +26,11 @@
     },
     "web": {
       "favicon": "./assets/favicon.png"
+    },
+    "extra": {
+      "eas": {
+        "projectId": "6d259ee2-df14-473a-b09b-42fb098344aa"
+      }
     }
   }
 }
