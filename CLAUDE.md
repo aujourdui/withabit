@@ -34,7 +34,18 @@ Habits are stored as objects with:
 - **Daily Tracking**: Prevents multiple completions per day by checking completion dates
 - **Persistent Storage**: All habit data is automatically saved to AsyncStorage on state changes
 - **Error Handling**: User-friendly Japanese error messages for AsyncStorage failures (data loading/saving)
+- **Progress Display**: Shows daily progress statistics (completed/total habits with remaining count)
+- **Completion Celebration**: Displays congratulatory message when all daily habits are completed
 - **Japanese UI**: User interface text is in Japanese
+
+### UI Components & Features
+- **Header**: App title and subtitle with progress statistics
+- **Progress Stats**: Daily completion counter (e.g., "今日の進捗: 2/5 (残り3個)")
+- **Completion Message**: Celebratory message with emoji when all habits are done
+- **Habit List**: FlatList displaying each habit with completion status
+- **Add Habit Modal**: Simple form for creating new habits
+- **Habit Actions**: Per-habit completion button and delete option
+- **Empty State**: Guidance message when no habits exist
 
 ### Technical Stack
 

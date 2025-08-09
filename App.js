@@ -108,6 +108,13 @@ export default function App() {
     return habits.every((habit) => getTodayStatus(habit));
   };
 
+  const getHabitStats = () => {
+    const total = habits.length;
+    const completed = habits.filter((habit) => getTodayStatus(habit)).length;
+    const remaining = total - completed;
+    return { total, completed, remaining };
+  };
+
   const renderHabitItem = ({ item }) => {
     const completedToday = getTodayStatus(item);
 
@@ -146,10 +153,21 @@ export default function App() {
     );
   };
 
+  const stats = getHabitStats();
+
   return (
     <View style={styles.container}>
       <Text style={styles.title}>withabit</Text>
       <Text style={styles.subtitle}>習慣とともに生きよう</Text>
+
+      {stats.total > 0 && (
+        <View style={styles.statsContainer}>
+          <Text style={styles.statsText}>
+            今日の進捗: {stats.completed}/{stats.total} 
+            {stats.remaining > 0 && ` (残り${stats.remaining}個)`}
+          </Text>
+        </View>
+      )}
 
       {isAllHabitsCompleted() && (
         <View style={styles.completionMessage}>
@@ -234,7 +252,22 @@ const styles = StyleSheet.create({
     fontSize: 16,
     textAlign: "center",
     color: "#666",
-    marginBottom: 30,
+    marginBottom: 10,
+  },
+  statsContainer: {
+    marginHorizontal: 20,
+    marginBottom: 20,
+    padding: 15,
+    backgroundColor: "#f8f9fa",
+    borderRadius: 8,
+    borderLeftWidth: 4,
+    borderLeftColor: "#4a90e2",
+  },
+  statsText: {
+    fontSize: 16,
+    color: "#333",
+    textAlign: "center",
+    fontWeight: "600",
   },
   completionMessage: {
     backgroundColor: "#d4edda",
