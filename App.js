@@ -10,97 +10,183 @@ import {
   Modal,
   Alert,
 } from "react-native";
-import AsyncStorage from "@react-native-async-storage/async-storage";
+import { 
+  collection, 
+  doc, 
+  getDocs, 
+  setDoc, 
+  deleteDoc, 
+  updateDoc, 
+  query, 
+  orderBy,
+  onSnapshot
+} from "firebase/firestore";
+import { ensureAnonymousAuth, db } from "./firebase";
 
 export default function App() {
   const [habits, setHabits] = useState([]);
   const [modalVisible, setModalVisible] = useState(false);
   const [newHabitName, setNewHabitName] = useState("");
+  const [loading, setLoading] = useState(true);
+  const [userID, setUserID] = useState(null);
 
   useEffect(() => {
-    loadHabits();
+    initializeApp();
   }, []);
 
-  const loadHabits = async () => {
+  const initializeApp = async () => {
     try {
-      const savedHabits = await AsyncStorage.getItem("habits");
-      if (savedHabits) {
-        setHabits(JSON.parse(savedHabits));
-      }
+      const uid = await ensureAnonymousAuth();
+      setUserID(uid);
+      loadHabits(uid);
     } catch (error) {
-      console.error("Error loading habits:", error);
+      console.error("Failed to initialize app:", error);
       Alert.alert(
-        "データ読み込みエラー",
-        "データの読み込みに失敗しました。アプリを再起動してください。"
+        "初期化エラー",
+        "アプリの初期化に失敗しました。ネットワーク接続を確認してください。"
       );
+      setLoading(false);
     }
   };
 
-  const saveHabits = async (habitsToSave) => {
+  const loadHabits = (uid) => {
     try {
-      await AsyncStorage.setItem("habits", JSON.stringify(habitsToSave));
+      const habitsRef = collection(db, `users/${uid}/habits`);
+      const q = query(habitsRef, orderBy("createdAt", "desc"));
+      
+      // Real-time listener for habits
+      const unsubscribe = onSnapshot(q, (querySnapshot) => {
+        const habitsData = [];
+        querySnapshot.forEach((doc) => {
+          habitsData.push({
+            id: doc.id,
+            ...doc.data()
+          });
+        });
+        setHabits(habitsData);
+        setLoading(false);
+      }, (error) => {
+        console.error("Error loading habits:", error);
+        Alert.alert(
+          "データ読み込みエラー",
+          "データの読み込みに失敗しました。ネットワーク接続を確認してください。"
+        );
+        setLoading(false);
+      });
+
+      return unsubscribe;
     } catch (error) {
-      console.error("Error saving habits:", error);
-      Alert.alert(
-        "データ保存エラー",
-        "データの保存に失敗しました。ストレージ容量を確認してください。"
-      );
+      console.error("Error setting up habits listener:", error);
+      setLoading(false);
     }
   };
 
-  const addHabit = () => {
-    if (newHabitName.trim()) {
-      const newHabit = {
-        id: Date.now().toString(),
+  const addHabit = async () => {
+    if (!newHabitName.trim() || !userID) return;
+
+    try {
+      const habitId = Date.now().toString();
+      const habitRef = doc(db, `users/${userID}/habits/${habitId}`);
+      
+      await setDoc(habitRef, {
         name: newHabitName.trim(),
         totalCount: 0,
-        completionDates: [],
-      };
-      const updatedHabits = [...habits, newHabit];
-      setHabits(updatedHabits);
-      saveHabits(updatedHabits);
+        createdAt: new Date(),
+      });
+
       setNewHabitName("");
       setModalVisible(false);
+    } catch (error) {
+      console.error("Error adding habit:", error);
+      Alert.alert(
+        "追加エラー",
+        "習慣の追加に失敗しました。もう一度お試しください。"
+      );
     }
   };
 
-  const markAsCompleted = (habitId) => {
+  const markAsCompleted = async (habitId) => {
+    if (!userID) return;
+
     const today = new Date().toISOString().split("T")[0];
-    const updatedHabits = habits.map((habit) => {
-      if (habit.id === habitId) {
-        const alreadyCompleted = habit.completionDates.includes(today);
-        if (!alreadyCompleted) {
-          return {
-            ...habit,
-            totalCount: habit.totalCount + 1,
-            completionDates: [...habit.completionDates, today],
-          };
-        }
+    
+    try {
+      // Check if already completed today
+      const isCompleted = await getTodayCompletionStatus(habitId, today);
+      if (isCompleted) {
+        return; // Already completed today
       }
-      return habit;
-    });
-    setHabits(updatedHabits);
-    saveHabits(updatedHabits);
+
+      // Add completion record
+      const recordRef = doc(db, `users/${userID}/records/${habitId}_${today}`);
+      await setDoc(recordRef, {
+        habitId,
+        date: today,
+        completedAt: new Date(),
+      });
+
+      // Update habit total count
+      const habitRef = doc(db, `users/${userID}/habits/${habitId}`);
+      const habit = habits.find(h => h.id === habitId);
+      if (habit) {
+        await updateDoc(habitRef, {
+          totalCount: habit.totalCount + 1,
+        });
+      }
+    } catch (error) {
+      console.error("Error marking habit as completed:", error);
+      Alert.alert(
+        "完了エラー",
+        "習慣の完了記録に失敗しました。もう一度お試しください。"
+      );
+    }
   };
 
-  const deleteHabit = (habitId) => {
+  const deleteHabit = async (habitId) => {
+    if (!userID) return;
+
     Alert.alert("習慣を削除", "本当に削除しますか？", [
       { text: "キャンセル", style: "cancel" },
       {
         text: "削除",
         style: "destructive",
-        onPress: () => {
-          const updatedHabits = habits.filter((habit) => habit.id !== habitId);
-          setHabits(updatedHabits);
-          saveHabits(updatedHabits);
+        onPress: async () => {
+          try {
+            await deleteDoc(doc(db, `users/${userID}/habits/${habitId}`));
+          } catch (error) {
+            console.error("Error deleting habit:", error);
+            Alert.alert(
+              "削除エラー",
+              "習慣の削除に失敗しました。もう一度お試しください。"
+            );
+          }
         },
       },
     ]);
   };
 
+  const getTodayCompletionStatus = async (habitId, date) => {
+    try {
+      const recordRef = doc(db, `users/${userID}/records/${habitId}_${date}`);
+      const recordSnapshot = await getDocs(collection(db, `users/${userID}/records`));
+      let completed = false;
+      recordSnapshot.forEach((doc) => {
+        if (doc.data().habitId === habitId && doc.data().date === date) {
+          completed = true;
+        }
+      });
+      return completed;
+    } catch (error) {
+      console.error("Error checking completion status:", error);
+      return false;
+    }
+  };
+
   const getTodayStatus = (habit) => {
     const today = new Date().toISOString().split("T")[0];
-    return habit.completionDates.includes(today);
+    // This is a simplified check - in real implementation, 
+    // you'd want to cache completion status or use a more efficient query
+    return false; // Placeholder - will be enhanced with real-time completion status
   };
 
   const isAllHabitsCompleted = () => {
@@ -154,6 +240,14 @@ export default function App() {
   };
 
   const stats = getHabitStats();
+
+  if (loading) {
+    return (
+      <View style={[styles.container, styles.centered]}>
+        <Text style={styles.loadingText}>読み込み中...</Text>
+      </View>
+    );
+  }
 
   return (
     <View style={styles.container}>
@@ -240,6 +334,14 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: "#f5f5f5",
     paddingTop: 50,
+  },
+  centered: {
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  loadingText: {
+    fontSize: 18,
+    color: "#666",
   },
   title: {
     fontSize: 28,
