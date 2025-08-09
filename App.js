@@ -103,6 +103,11 @@ export default function App() {
     return habit.completionDates.includes(today);
   };
 
+  const isAllHabitsCompleted = () => {
+    if (habits.length === 0) return false;
+    return habits.every((habit) => getTodayStatus(habit));
+  };
+
   const renderHabitItem = ({ item }) => {
     const completedToday = getTodayStatus(item);
 
@@ -145,6 +150,14 @@ export default function App() {
     <View style={styles.container}>
       <Text style={styles.title}>withabit</Text>
       <Text style={styles.subtitle}>習慣とともに生きよう</Text>
+
+      {isAllHabitsCompleted() && (
+        <View style={styles.completionMessage}>
+          <Text style={styles.completionText}>🎉</Text>
+          <Text style={styles.completionText}>今日の習慣は全て完了しました。</Text>
+          <Text style={styles.completionText}>お疲れ様でした！</Text>
+        </View>
+      )}
 
       <FlatList
         data={habits}
@@ -222,6 +235,23 @@ const styles = StyleSheet.create({
     textAlign: "center",
     color: "#666",
     marginBottom: 30,
+  },
+  completionMessage: {
+    backgroundColor: "#d4edda",
+    marginHorizontal: 20,
+    marginBottom: 20,
+    padding: 20,
+    borderRadius: 10,
+    borderColor: "#c3e6cb",
+    borderWidth: 1,
+    alignItems: "center",
+  },
+  completionText: {
+    fontSize: 18,
+    color: "#155724",
+    textAlign: "center",
+    marginBottom: 5,
+    fontWeight: "bold",
   },
   habitList: {
     flex: 1,
