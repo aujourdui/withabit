@@ -29,16 +29,43 @@ export default function App() {
   const [newHabitName, setNewHabitName] = useState("");
   const [loading, setLoading] = useState(true);
   const [userID, setUserID] = useState(null);
+  const [completedToday, setCompletedToday] = useState({});
 
   useEffect(() => {
     initializeApp();
   }, []);
+
+  const loadTodayCompletions = (uid) => {
+    try {
+      const today = new Date().toISOString().split("T")[0];
+      const recordsRef = collection(db, `users/${uid}/records`);
+      
+      // Real-time listener for today's completions
+      const unsubscribe = onSnapshot(recordsRef, (querySnapshot) => {
+        const todayCompletions = {};
+        querySnapshot.forEach((doc) => {
+          const data = doc.data();
+          if (data.date === today) {
+            todayCompletions[data.habitId] = true;
+          }
+        });
+        setCompletedToday(todayCompletions);
+      }, (error) => {
+        console.error("Error loading today's completions:", error);
+      });
+
+      return unsubscribe;
+    } catch (error) {
+      console.error("Error setting up completions listener:", error);
+    }
+  };
 
   const initializeApp = async () => {
     try {
       const uid = await ensureAnonymousAuth();
       setUserID(uid);
       loadHabits(uid);
+      loadTodayCompletions(uid);
     } catch (error) {
       console.error("Failed to initialize app:", error);
       Alert.alert(
@@ -52,7 +79,7 @@ export default function App() {
   const loadHabits = (uid) => {
     try {
       const habitsRef = collection(db, `users/${uid}/habits`);
-      const q = query(habitsRef, orderBy("createdAt", "desc"));
+      const q = query(habitsRef, orderBy("createdAt", "asc"));
       
       // Real-time listener for habits
       const unsubscribe = onSnapshot(q, (querySnapshot) => {
@@ -110,13 +137,12 @@ export default function App() {
 
     const today = new Date().toISOString().split("T")[0];
     
+    // Check if already completed today using state
+    if (completedToday[habitId]) {
+      return; // Already completed today
+    }
+    
     try {
-      // Check if already completed today
-      const isCompleted = await getTodayCompletionStatus(habitId, today);
-      if (isCompleted) {
-        return; // Already completed today
-      }
-
       // Add completion record
       const recordRef = doc(db, `users/${userID}/records/${habitId}_${today}`);
       await setDoc(recordRef, {
@@ -165,28 +191,8 @@ export default function App() {
     ]);
   };
 
-  const getTodayCompletionStatus = async (habitId, date) => {
-    try {
-      const recordRef = doc(db, `users/${userID}/records/${habitId}_${date}`);
-      const recordSnapshot = await getDocs(collection(db, `users/${userID}/records`));
-      let completed = false;
-      recordSnapshot.forEach((doc) => {
-        if (doc.data().habitId === habitId && doc.data().date === date) {
-          completed = true;
-        }
-      });
-      return completed;
-    } catch (error) {
-      console.error("Error checking completion status:", error);
-      return false;
-    }
-  };
-
   const getTodayStatus = (habit) => {
-    const today = new Date().toISOString().split("T")[0];
-    // This is a simplified check - in real implementation, 
-    // you'd want to cache completion status or use a more efficient query
-    return false; // Placeholder - will be enhanced with real-time completion status
+    return completedToday[habit.id] || false;
   };
 
   const isAllHabitsCompleted = () => {

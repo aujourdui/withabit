@@ -46,14 +46,17 @@ users/{uid}/
 
 ### Key Functionality
 - **Daily Tracking**: Prevents multiple completions per day by storing completion records in Firestore
+- **Real-time Completion Status**: Live tracking of habit completion with instant UI updates
 - **Real-time Sync**: Automatic data synchronization across devices using Firestore listeners
 - **Offline Support**: Basic offline functionality through Firebase Web SDK caching
 - **Anonymous Auth**: Transparent user identification without registration requirements
+- **Firebase Auth Persistence**: Session persistence using AsyncStorage for seamless user experience
 - **Data Security**: User data isolation through Firebase security rules
 - **Error Handling**: User-friendly Japanese error messages for network and data failures
 - **Progress Display**: Shows daily progress statistics (completed/total habits with remaining count)
 - **Completion Celebration**: Displays congratulatory message when all daily habits are completed
 - **Cross-device Continuity**: Habit data persists across device changes and app reinstalls
+- **Chronological Ordering**: Habits displayed in creation order (oldest to newest)
 - **Japanese UI**: User interface text is in Japanese
 
 ### UI Components & Features
@@ -81,8 +84,8 @@ users/{uid}/
 - Real-time listeners for data synchronization
 
 **Files:**
-- `App.js` - Main application component with Firestore integration
-- `firebase.js` - Firebase configuration and authentication utilities
+- `App.js` - Main application component with Firestore integration and real-time completion tracking
+- `firebase.js` - Firebase configuration with AsyncStorage persistence and authentication utilities
 - `package.json` - Dependencies including Firebase SDK
 
 **Security:**
